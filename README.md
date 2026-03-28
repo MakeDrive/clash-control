@@ -64,7 +64,7 @@ The clash engine lives in `index.html` and is centered around these functions: `
 1. **Broad phase (`_sweepAndPrune`)**  
    It gathers the candidate elements from the selected model groups, chooses the axis with the highest AABB-center variance, sorts by min bound on that axis, and sweeps an active set. This replaces an `O(n²)` pair loop with an `O(n log n + k)` candidate pass.
 2. **Hard clash path (`_getBVH` + `_bvhTraverseAll` + `_triTriTest`)**  
-   Each candidate element lazily gets a triangle BVH built from world-space triangles. Detection then traverses the two BVHs together, pruning non-overlapping node AABBs until it reaches leaf triangles. Exact hits are confirmed with the Möller triangle-triangle intersection test.
+   Each candidate element lazily gets a triangle BVH built from world-space triangles. Detection then traverses the two BVHs together, pruning non-overlapping node AABBs until it reaches leaf triangles. Exact hits are confirmed with the Moller (1997) triangle-triangle intersection test.
 3. **Soft clash path (`_meshMinDist`)**  
    If there is no hard clash and a clearance is configured, the engine uses a spatial hash grid over world-space vertices to estimate the minimum vertex-to-vertex distance and flags a soft clash when that distance is within the configured gap.
 4. **Post-processing (`_detectClashesCore`)**  
@@ -93,7 +93,7 @@ detectClashesService({
 
 Recommended split:
 
-1. **Adapter layer**: keep IFC parsing and scene/Three.js setup in the app, but normalize each element into the shape already expected by the detector (`expressId`, `box`, `props`, world-space verts/tris or a way to build them).
+1. **Adapter layer**: keep IFC parsing and scene/Three.js setup in the app, but normalize each element into the shape already expected by the detector (`expressId`, `box`, `props`, world-space vertices/triangles or a way to build them).
 2. **Pure detection layer**: move the clash helpers and `_detectClashesCore()` into a reusable service file. This layer should not know about UI state, reducers, panels, or Preact components.
 3. **Integration layer**: keep `detectClashesAsync()` as the browser-facing wrapper that reports progress and cancellation, or replace it with a worker-based wrapper if the service is ever moved off the main thread.
 
@@ -101,7 +101,7 @@ In practice, the extraction risk is low because the detector is already mostly w
 
 ### Would it tend to work with That Open Company's `.frag` format?
 
-- **As the repository exists today: no direct support.** ClashControl currently imports IFC and the codebase itself already notes a TODO to consider Fragments if the project moves away from the current single-file architecture.
+- **As the repository exists today: no direct support.** ClashControl currently imports IFC and `index.html` already includes a geometry-cache TODO about revisiting That Open Fragments if the project moves away from the current single-file architecture; search for `TODO(fragments)` near the geometry cache helpers.
 - **As a detection algorithm: yes, with an adapter.** The clash engine is mostly geometry-format agnostic. If a `.frag` loader can expose each fragment/element as world-space triangles or vertices plus bounding boxes and metadata, the existing broad phase, BVH traversal, and soft-clash logic can run on that data.
 - **Main integration caveats:** That Open Fragments is designed around an ESM/bundled setup, has its own loading/runtime expectations, and would likely require version alignment work with the app's current Three.js setup before becoming a first-class input format here.
 
